@@ -196,9 +196,9 @@ export class AozoraIndex {
   getAuthorsByKanaPrefix(prefix: string): Author[] {
     const katakanaPrefix = hiraganaToKatakana(prefix);
     const row = KANA_ROW_MAP[katakanaPrefix];
-    if (!row) return [];
 
-    const rowSet = new Set(row);
+    // 行キー（ア,カ,サ...）なら行全体、個別文字ならその文字のみ
+    const rowSet = row ? new Set(row) : new Set([katakanaPrefix]);
     const result: Author[] = [];
 
     for (const author of this.authors.values()) {
@@ -226,9 +226,9 @@ export class AozoraIndex {
   getWorksByTitleKanaPrefix(prefix: string): Work[] {
     const katakanaPrefix = hiraganaToKatakana(prefix);
     const row = KANA_ROW_MAP[katakanaPrefix];
-    if (!row) return [];
 
-    const rowSet = new Set(row);
+    // 行キー（ア,カ,サ...）なら行全体、個別文字ならその文字のみ
+    const rowSet = row ? new Set(row) : new Set([katakanaPrefix]);
     return this.works.filter((w) => {
       const kana = hiraganaToKatakana(w.titleKana);
       return rowSet.has(kana.charAt(0));
