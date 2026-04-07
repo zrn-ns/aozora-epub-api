@@ -1,0 +1,24 @@
+{
+  "name": "aozora-epub-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dev": "vercel dev"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0",
+    "@vercel/node": "^5.0.0",
+    "adm-zip": "^0.5.0",
+    "@types/adm-zip": "^0.5.0"
+  },
+  "dependencies": {
+    "iconv-lite": "^0.6.3",
+    "archiver": "^7.0.0",
+    "@types/archiver": "^6.0.0"
+  }
+}

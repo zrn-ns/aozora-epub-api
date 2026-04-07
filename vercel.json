@@ -1,0 +1,21 @@
+{
+  "functions": {
+    "api/*.ts": {
+      "maxDuration": 30
+    }
+  },
+  "headers": [
+    {
+      "source": "/api/authors",
+      "headers": [{ "key": "Cache-Control", "value": "s-maxage=86400" }]
+    },
+    {
+      "source": "/api/works",
+      "headers": [{ "key": "Cache-Control", "value": "s-maxage=86400" }]
+    },
+    {
+      "source": "/api/convert",
+      "headers": [{ "key": "Cache-Control", "value": "s-maxage=604800" }]
+    }
+  ]
+}
