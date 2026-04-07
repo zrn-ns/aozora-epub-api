@@ -10,6 +10,7 @@ function toWorkItem(w: Work) {
     title: w.title,
     kana: w.titleKana,
     ndc: w.ndc,
+    author: w.authorName,
   };
 }
 
