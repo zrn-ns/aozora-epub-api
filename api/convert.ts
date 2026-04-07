@@ -84,6 +84,7 @@ export default async function handler(
     // ファイル名をASCIIセーフにエンコード
     const safeTitle = encodeURIComponent(work.title);
     res.setHeader("Content-Type", "application/epub+zip");
+    res.setHeader("Content-Length", String(epubBuffer.length));
     res.setHeader(
       "Content-Disposition",
       `attachment; filename="${safeTitle}.epub"; filename*=UTF-8''${safeTitle}.epub`
