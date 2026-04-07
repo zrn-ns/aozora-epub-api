@@ -68,8 +68,20 @@ export default async function handler(
       works = index.getNewestWorks(safeLimit);
     }
 
-    const body: WorksResponse = {
-      works: works.map(toWorkItem),
+    // ページネーション
+    const offsetNum = req.query.offset !== undefined ? parseInt(String(req.query.offset), 10) : 0;
+    const limitNum2 = req.query.limit !== undefined ? parseInt(String(req.query.limit), 10) : 50;
+    const safeOffset = isNaN(offsetNum) || offsetNum < 0 ? 0 : offsetNum;
+    const safeLimit2 = isNaN(limitNum2) || limitNum2 <= 0 ? 50 : Math.min(limitNum2, 200);
+
+    const total = works.length;
+    const paged = works.slice(safeOffset, safeOffset + safeLimit2);
+
+    const body = {
+      works: paged.map(toWorkItem),
+      total,
+      offset: safeOffset,
+      limit: safeLimit2,
     };
     res.status(200).json(body);
   } catch (err) {
