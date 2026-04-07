@@ -104,7 +104,7 @@ function buildContentOpf(title: string, author: string, chapters: Chapter[]): st
     <item id="css" href="style.css" media-type="text/css"/>
 ${manifestItems}
   </manifest>
-  <spine>
+  <spine page-progression-direction="rtl">
     <itemref idref="nav" linear="no"/>
 ${spineItems}
   </spine>
@@ -140,6 +140,11 @@ ${tocItems}
 
 function buildStyleCss(): string {
   return `/* CrossPoint EPUB Style */
+html {
+  writing-mode: vertical-rl;
+  -webkit-writing-mode: vertical-rl;
+}
+
 ruby rt {
   font-size: 0.5em;
 }
