@@ -16,7 +16,8 @@ function nodesToXhtml(nodes: AozoraNode[]): string {
         result += `<ruby>${escapeXml(node.base)}<rt>${escapeXml(node.reading)}</rt></ruby>`;
         break;
       case "heading":
-        result += `<h${node.level}>${nodesToXhtml(node.children)}</h${node.level}>`;
+        // <h> タグはEPUBリーダーのフォントサイズ設定を上書きするため使わない
+        result += `<p><b>${nodesToXhtml(node.children)}</b></p>`;
         break;
       case "heading_end":
         // heading_end は heading ノードに内包されているため個別処理不要
@@ -59,7 +60,7 @@ function buildChapterXhtml(title: string, nodes: AozoraNode[]): string {
   <link rel="stylesheet" type="text/css" href="style.css"/>
 </head>
 <body>
-${title ? `<h1>${titleEscaped}</h1>\n` : ""}${body}
+${title ? `<p><b>${titleEscaped}</b></p>\n` : ""}${body}
 </body>
 </html>`;
 }

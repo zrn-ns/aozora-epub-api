@@ -54,13 +54,13 @@ describe("parseAozoraText", () => {
     }
   });
 
-  it("字下げをパースする", () => {
+  it("字下げ+見出し複合パターンは見出しのみ出力する", () => {
     const nodes = parseAozoraText(sampleText);
+    // 字下げ+見出しの複合パターンはheadingノードのみ出力（indentは生成しない）
     const indents = nodes.filter((n) => n.type === "indent");
-    expect(indents.length).toBeGreaterThanOrEqual(2);
-    if (indents[0].type === "indent") {
-      expect(indents[0].chars).toBe(3);
-    }
+    expect(indents.length).toBe(0);
+    const headings = nodes.filter((n) => n.type === "heading");
+    expect(headings.length).toBeGreaterThanOrEqual(2);
   });
 
   it("改ページをパースする", () => {

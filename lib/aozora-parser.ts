@@ -100,21 +100,14 @@ function parseLines(text: string): AozoraNode[] {
 
     // 字下げ + 見出し複合パターン: ［＃N字下げ］text［＃「text」はXX見出し］
     // 全角数字（０-９）と半角数字（0-9）の両方に対応
-    // 字下げ付き見出しは見出しとして扱う（字下げは見出しの書式指定）
+    // 字下げは見出しの書式指定なので、見出しノードとしてのみ出力する
     const indentHeadingMatch = line.match(
       /^［＃([0-9０-９]+)字下げ］(.+)［＃「(.+)」は(大|中|小)見出し］$/
     );
     if (indentHeadingMatch) {
-      const indentChars = parseJapaneseNumber(indentHeadingMatch[1]);
       const headingText = indentHeadingMatch[3];
       const level = headingLevelFromSize(indentHeadingMatch[4]);
       const headingChildren = parseInline(headingText);
-      // indent ノードとして出力しつつ、heading もトップレベルに出力
-      nodes.push({
-        type: "indent",
-        chars: indentChars,
-        children: [{ type: "heading", level, children: headingChildren }],
-      });
       nodes.push({ type: "heading", level, children: headingChildren });
       continue;
     }
