@@ -112,7 +112,7 @@ npm test
 
 ## フロントエンド
 
-`frontend/` ディレクトリにブラウザ用のフロントエンドがあります。GitHub Pagesでホストされています。
+`docs/` ディレクトリにブラウザ用のフロントエンドがあります。GitHub Pagesでホストされています。
 
 **フロントエンドURL**: https://zrn-ns.github.io/aozora-epub-api/
 
