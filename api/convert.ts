@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getIndex } from "../lib/index-loader.js";
+import { handleCors } from "../lib/cors.js";
 import { fetchAozoraText } from "../lib/aozora-fetcher.js";
 import { parseAozoraText } from "../lib/aozora-parser.js";
 import { splitChapters } from "../lib/chapter-splitter.js";
@@ -15,6 +16,8 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ): Promise<void> {
+  if (handleCors(req, res)) return;
+
   const { work_id } = req.query;
 
   if (!work_id) {

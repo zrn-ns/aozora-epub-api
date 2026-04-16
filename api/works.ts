@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getIndex } from "../lib/index-loader.js";
+import { handleCors } from "../lib/cors.js";
 import type { WorksResponse, ApiError } from "../lib/types.js";
 import type { Work } from "../lib/types.js";
 
@@ -26,6 +27,8 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ): Promise<void> {
+  if (handleCors(req, res)) return;
+
   const { author_id, kana_prefix, ndc, sort, limit } = req.query;
 
   const hasAuthorId = author_id !== undefined;
