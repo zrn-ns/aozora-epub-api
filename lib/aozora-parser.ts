@@ -169,7 +169,7 @@ function headingLevelFromSize(size: string): 1 | 2 | 3 {
 
 /**
  * 行内のインライン注記をパースする
- * - ルビ: 漢字《かんじ》
+ * - ルビ: 漢字《かんじ》 or ｜テキスト《ルビ》
  * - 傍点: ［＃「text」に傍点］
  */
 function parseInline(text: string): AozoraNode[] {
@@ -177,16 +177,21 @@ function parseInline(text: string): AozoraNode[] {
   let remaining = text;
 
   while (remaining.length > 0) {
-    // ルビパターン: base《reading》
-    // baseは漢字・々・〇・ヶ・カタカナ・ひらがなの1文字以上
+    // ルビパターン1: ｜base《reading》（明示的なルビ範囲指定）
+    const explicitRubyMatch = remaining.match(
+      /^｜([^《]+)《([^》]+)》/
+    );
+    if (explicitRubyMatch) {
+      nodes.push({ type: "ruby", base: explicitRubyMatch[1], reading: explicitRubyMatch[2] });
+      remaining = remaining.slice(explicitRubyMatch[0].length);
+      continue;
+    }
+
+    // ルビパターン2: 漢字列《reading》（直前の漢字列のみがルビ対象）
     const rubyMatch = remaining.match(
-      /^([\u4E00-\u9FFF\u3400-\u4DBF々〇ヶ\u30A0-\u30FF\u3040-\u309F]+)《([^》]+)》/
+      /^([\u4E00-\u9FFF\u3400-\u4DBF々〇ヶ]+)《([^》]+)》/
     );
     if (rubyMatch) {
-      const before = "";
-      if (before) {
-        nodes.push({ type: "text", content: before });
-      }
       nodes.push({ type: "ruby", base: rubyMatch[1], reading: rubyMatch[2] });
       remaining = remaining.slice(rubyMatch[0].length);
       continue;
@@ -251,11 +256,18 @@ function parseInline(text: string): AozoraNode[] {
  * 見つからない場合は -1 を返す。
  */
 function findNextSpecial(text: string): number {
-  // 《 を含む（ルビの読み仮名部分の開始）、または ［＃ を含む
   let minIndex = -1;
 
-  // ルビベース: CJK漢字等 + 《 のパターンを探す
-  const rubyPattern = /[\u4E00-\u9FFF\u3400-\u4DBF々〇ヶ\u30A0-\u30FF\u3040-\u309F]+《/;
+  // ｜（明示的ルビ範囲指定）
+  const pipeIdx = text.indexOf("｜");
+  if (pipeIdx !== -1) {
+    if (minIndex === -1 || pipeIdx < minIndex) {
+      minIndex = pipeIdx;
+    }
+  }
+
+  // ルビベース: 漢字列 + 《 のパターンを探す（ひらがな・カタカナは含めない）
+  const rubyPattern = /[\u4E00-\u9FFF\u3400-\u4DBF々〇ヶ]+《/;
   const rubyMatch = text.match(rubyPattern);
   if (rubyMatch && rubyMatch.index !== undefined) {
     const idx = rubyMatch.index;
