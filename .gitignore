@@ -1,4 +1,6 @@
 node_modules/
 dist/
 .vercel/
+.superpowers/
+.playwright-mcp/
 *.tgz

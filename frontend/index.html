@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>青空文庫 EPUB ダウンローダー</title>
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+      background: #f8f6f3;
+      color: #333;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 0 16px;
+    }
+
+    /* ヘッダー */
+    header {
+      text-align: center;
+      padding: 32px 0 24px;
+      border-bottom: 1px solid #e0dcd6;
+    }
+
+    header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+
+    header p {
+      font-size: 13px;
+      color: #888;
+      margin-top: 4px;
+    }
+
+    /* パンくず */
+    .breadcrumb {
+      padding: 12px 0;
+      font-size: 13px;
+      color: #999;
+    }
+
+    .breadcrumb a {
+      color: #5b7a5e;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .breadcrumb a:hover {
+      text-decoration: underline;
+    }
+
+    .breadcrumb .sep {
+      margin: 0 6px;
+    }
+
+    /* 50音ボタン */
+    .kana-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 16px 0;
+    }
+
+    .kana-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 40px;
+      border: 1px solid #d4cfc7;
+      border-radius: 6px;
+      background: #fff;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: #333;
+    }
+
+    .kana-btn:hover {
+      background: #5b7a5e;
+      color: #fff;
+      border-color: #5b7a5e;
+    }
+
+    .kana-btn.active {
+      background: #5b7a5e;
+      color: #fff;
+      border-color: #5b7a5e;
+    }
+
+    /* セクションタイトル */
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #666;
+      padding: 16px 0 8px;
+    }
+
+    /* リスト */
+    .list {
+      border: 1px solid #e0dcd6;
+      border-radius: 8px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .list-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid #f0ece6;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .list-item:last-child {
+      border-bottom: none;
+    }
+
+    .list-item:hover {
+      background: #faf8f5;
+    }
+
+    .list-item-main {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .list-item-title {
+      font-size: 15px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .list-item-sub {
+      font-size: 12px;
+      color: #aaa;
+      margin-top: 2px;
+    }
+
+    .list-item-badge {
+      flex-shrink: 0;
+      font-size: 12px;
+      color: #999;
+      margin-left: 12px;
+    }
+
+    /* ダウンロードボタン */
+    .dl-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 12px;
+      background: #5b7a5e;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.15s;
+      flex-shrink: 0;
+      margin-left: 12px;
+    }
+
+    .dl-btn:hover {
+      background: #4a6a4d;
+    }
+
+    .dl-btn:disabled {
+      background: #bbb;
+      cursor: not-allowed;
+    }
+
+    /* 作者ヘッダー */
+    .author-header {
+      padding: 16px 0;
+    }
+
+    .author-header h2 {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .author-header .sub {
+      font-size: 13px;
+      color: #999;
+      margin-top: 2px;
+    }
+
+    /* ページネーション */
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 16px 0;
+      font-size: 13px;
+      color: #999;
+    }
+
+    .pagination button {
+      padding: 6px 16px;
+      border: 1px solid #d4cfc7;
+      border-radius: 6px;
+      background: #fff;
+      font-size: 13px;
+      cursor: pointer;
+      color: #333;
+    }
+
+    .pagination button:hover:not(:disabled) {
+      background: #f0ece6;
+    }
+
+    .pagination button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* ローディング */
+    .loading {
+      text-align: center;
+      padding: 32px 0;
+      color: #aaa;
+      font-size: 14px;
+    }
+
+    .loading::after {
+      content: "";
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #ccc;
+      border-top-color: #5b7a5e;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* エラー */
+    .error {
+      text-align: center;
+      padding: 24px;
+      color: #c44;
+      font-size: 14px;
+    }
+
+    /* 空状態 */
+    .empty {
+      text-align: center;
+      padding: 32px 0;
+      color: #bbb;
+      font-size: 14px;
+    }
+
+    /* フッター */
+    footer {
+      text-align: center;
+      padding: 32px 0;
+      font-size: 12px;
+      color: #bbb;
+    }
+
+    footer a {
+      color: #999;
+    }
+
+    /* ビュー表示制御 */
+    .view { display: none; }
+    .view.active { display: block; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>青空文庫 EPUB</h1>
+      <p>青空文庫の作品をEPUB形式でダウンロード</p>
+    </header>
+
+    <nav class="breadcrumb" id="breadcrumb"></nav>
+
+    <!-- Step 1: 作者検索 -->
+    <div class="view active" id="view-authors">
+      <div class="section-title">50音から作者を探す</div>
+      <div class="kana-grid" id="kana-grid"></div>
+      <div id="authors-content"></div>
+    </div>
+
+    <!-- Step 2: 作品一覧 -->
+    <div class="view" id="view-works">
+      <div class="author-header" id="works-header"></div>
+      <div id="works-content"></div>
+    </div>
+
+    <footer>
+      <a href="https://www.aozora.gr.jp/" target="_blank" rel="noopener">青空文庫</a>のデータを利用しています
+      &middot;
+      <a href="https://github.com/zrn-ns/aozora-epub-api" target="_blank" rel="noopener">GitHub</a>
+    </footer>
+  </div>
+
+  <script>
+    const API_BASE = location.hostname === "localhost"
+      ? ""  // ローカル開発時はプロキシ経由
+      : "https://aozora-epub-api.vercel.app";
+    const KANA_ROWS = ["ア","カ","サ","タ","ナ","ハ","マ","ヤ","ラ","ワ"];
+    const PAGE_SIZE = 50;
+
+    // 状態
+    let currentKana = null;
+    let currentAuthor = null; // { id, name, kana, work_count }
+    let worksOffset = 0;
+    let worksTotal = 0;
+
+    // --- 初期化 ---
+    function init() {
+      const grid = document.getElementById("kana-grid");
+      for (const kana of KANA_ROWS) {
+        const btn = document.createElement("button");
+        btn.className = "kana-btn";
+        btn.textContent = kana;
+        btn.addEventListener("click", () => selectKana(kana));
+        grid.appendChild(btn);
+      }
+      updateBreadcrumb();
+    }
+
+    // --- ビュー切り替え ---
+    function showView(name) {
+      document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+      document.getElementById(`view-${name}`).classList.add("active");
+    }
+
+    // --- パンくず ---
+    function updateBreadcrumb() {
+      const bc = document.getElementById("breadcrumb");
+      if (!currentKana) {
+        bc.innerHTML = "";
+        return;
+      }
+      let html = `<a onclick="goHome()">作者を探す</a>`;
+      if (currentAuthor) {
+        html += `<span class="sep">&gt;</span>`;
+        html += `<a onclick="goBackToAuthors()">${currentKana}行</a>`;
+        html += `<span class="sep">&gt;</span>`;
+        html += currentAuthor.name;
+      } else {
+        html += `<span class="sep">&gt;</span>${currentKana}行`;
+      }
+      bc.innerHTML = html;
+    }
+
+    // --- ナビゲーション ---
+    function goHome() {
+      currentKana = null;
+      currentAuthor = null;
+      document.querySelectorAll(".kana-btn").forEach(b => b.classList.remove("active"));
+      document.getElementById("authors-content").innerHTML = "";
+      showView("authors");
+      updateBreadcrumb();
+    }
+
+    function goBackToAuthors() {
+      currentAuthor = null;
+      showView("authors");
+      updateBreadcrumb();
+    }
+
+    // --- Step 1: 50音で作者検索 ---
+    async function selectKana(kana) {
+      currentKana = kana;
+      currentAuthor = null;
+
+      document.querySelectorAll(".kana-btn").forEach(b => {
+        b.classList.toggle("active", b.textContent === kana);
+      });
+
+      updateBreadcrumb();
+      showView("authors");
+
+      const container = document.getElementById("authors-content");
+      container.innerHTML = `<div class="loading">読み込み中</div>`;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/authors?kana_prefix=${encodeURIComponent(kana)}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        if (data.authors.length === 0) {
+          container.innerHTML = `<div class="empty">該当する作者が見つかりません</div>`;
+          return;
+        }
+
+        let html = `<div class="list">`;
+        for (const author of data.authors) {
+          html += `
+            <div class="list-item" onclick="selectAuthor(${author.id}, '${escapeHtml(author.name)}', '${escapeHtml(author.kana)}', ${author.work_count})">
+              <div class="list-item-main">
+                <div class="list-item-title">${escapeHtml(author.name)}</div>
+                <div class="list-item-sub">${escapeHtml(author.kana)}</div>
+              </div>
+              <div class="list-item-badge">${author.work_count}作品</div>
+            </div>`;
+        }
+        html += `</div>`;
+        container.innerHTML = html;
+      } catch (e) {
+        container.innerHTML = `<div class="error">読み込みに失敗しました: ${escapeHtml(e.message)}</div>`;
+      }
+    }
+
+    // --- Step 2: 作品一覧 ---
+    function selectAuthor(id, name, kana, workCount) {
+      currentAuthor = { id, name, kana, work_count: workCount };
+      worksOffset = 0;
+      worksTotal = 0;
+
+      updateBreadcrumb();
+      showView("works");
+
+      document.getElementById("works-header").innerHTML = `
+        <h2>${escapeHtml(name)}</h2>
+        <div class="sub">${escapeHtml(kana)} &middot; ${workCount}作品</div>
+      `;
+
+      loadWorks();
+    }
+
+    async function loadWorks() {
+      const container = document.getElementById("works-content");
+      container.innerHTML = `<div class="loading">読み込み中</div>`;
+
+      try {
+        const url = `${API_BASE}/api/works?author_id=${currentAuthor.id}&offset=${worksOffset}&limit=${PAGE_SIZE}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        worksTotal = data.total;
+
+        if (data.works.length === 0) {
+          container.innerHTML = `<div class="empty">作品が見つかりません</div>`;
+          return;
+        }
+
+        let html = `<div class="list">`;
+        for (const work of data.works) {
+          html += `
+            <div class="list-item">
+              <div class="list-item-main">
+                <div class="list-item-title">${escapeHtml(work.title)}</div>
+                <div class="list-item-sub">${work.ndc ? "NDC: " + escapeHtml(work.ndc) : ""}</div>
+              </div>
+              <button class="dl-btn" onclick="downloadEpub(event, ${work.id}, '${escapeHtml(work.title)}')">EPUB</button>
+            </div>`;
+        }
+        html += `</div>`;
+
+        // ページネーション
+        const totalPages = Math.ceil(worksTotal / PAGE_SIZE);
+        const currentPage = Math.floor(worksOffset / PAGE_SIZE) + 1;
+
+        if (totalPages > 1) {
+          html += `
+            <div class="pagination">
+              <button onclick="prevPage()" ${worksOffset === 0 ? "disabled" : ""}>前へ</button>
+              <span>${currentPage} / ${totalPages}</span>
+              <button onclick="nextPage()" ${worksOffset + PAGE_SIZE >= worksTotal ? "disabled" : ""}>次へ</button>
+            </div>`;
+        }
+
+        container.innerHTML = html;
+      } catch (e) {
+        container.innerHTML = `<div class="error">読み込みに失敗しました: ${escapeHtml(e.message)}</div>`;
+      }
+    }
+
+    function prevPage() {
+      worksOffset = Math.max(0, worksOffset - PAGE_SIZE);
+      loadWorks();
+    }
+
+    function nextPage() {
+      worksOffset += PAGE_SIZE;
+      loadWorks();
+    }
+
+    // --- EPUBダウンロード ---
+    async function downloadEpub(event, workId, title) {
+      const btn = event.target;
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = "変換中...";
+
+      try {
+        const res = await fetch(`${API_BASE}/api/convert?work_id=${workId}`);
+        if (!res.ok) {
+          const errData = await res.json().catch(() => null);
+          throw new Error(errData?.message || `HTTP ${res.status}`);
+        }
+
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${title}.epub`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        alert(`ダウンロードに失敗しました:\n${e.message}`);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    }
+
+    // --- ユーティリティ ---
+    function escapeHtml(str) {
+      const d = document.createElement("div");
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    init();
+  </script>
+</body>
+</html>
