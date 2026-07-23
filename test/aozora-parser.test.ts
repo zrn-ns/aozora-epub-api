@@ -1,10 +1,30 @@
 import { describe, it, expect } from "vitest";
 import { parseAozoraText } from "../lib/aozora-parser.js";
+import type { AozoraNode } from "../lib/types.js";
 import { readFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// トップレベル + ネストされた children を再帰的に flat 展開する。
+// paragraph 導入により通常行の text/ruby は paragraph.children にネストされるため、
+// テスト内で node を探索する際は flatten を通す必要がある。
+function flattenNodes(nodes: AozoraNode[]): AozoraNode[] {
+  const result: AozoraNode[] = [];
+  for (const n of nodes) {
+    result.push(n);
+    if (
+      n.type === "paragraph" ||
+      n.type === "heading" ||
+      n.type === "indent" ||
+      n.type === "emphasis"
+    ) {
+      result.push(...flattenNodes(n.children));
+    }
+  }
+  return result;
+}
 
 describe("parseAozoraText", () => {
   const sampleText = readFileSync(
@@ -14,9 +34,9 @@ describe("parseAozoraText", () => {
 
   it("ヘッダー（記号説明ブロック）を除去する", () => {
     const nodes = parseAozoraText(sampleText);
-    const allText = nodes
+    const allText = flattenNodes(nodes)
       .filter((n) => n.type === "text")
-      .map((n) => n.content)
+      .map((n) => (n.type === "text" ? n.content : ""))
       .join("");
     expect(allText).not.toContain("【テキスト中に現れる記号について】");
     expect(allText).not.toContain("-------");
@@ -24,9 +44,9 @@ describe("parseAozoraText", () => {
 
   it("タイトル行を除去する", () => {
     const nodes = parseAozoraText(sampleText);
-    const allText = nodes
+    const allText = flattenNodes(nodes)
       .filter((n) => n.type === "text")
-      .map((n) => n.content)
+      .map((n) => (n.type === "text" ? n.content : ""))
       .join("");
     expect(allText).not.toContain("テスト作品");
     expect(allText).not.toContain("テスト著者");
@@ -34,7 +54,7 @@ describe("parseAozoraText", () => {
 
   it("ルビを正しくパースする", () => {
     const nodes = parseAozoraText(sampleText);
-    const rubyNodes = nodes.filter((n) => n.type === "ruby");
+    const rubyNodes = flattenNodes(nodes).filter((n) => n.type === "ruby");
     expect(rubyNodes.length).toBeGreaterThanOrEqual(4); // げにん, らしょうもん, くさめ, たいぎ
     const rashomon = rubyNodes.find(
       (n) => n.type === "ruby" && n.base === "羅生門"
@@ -71,10 +91,24 @@ describe("parseAozoraText", () => {
 
   it("底本注記を保持する", () => {
     const nodes = parseAozoraText(sampleText);
-    const textNodes = nodes.filter((n) => n.type === "text");
+    const textNodes = flattenNodes(nodes).filter((n) => n.type === "text");
     const hasColophon = textNodes.some(
       (n) => n.type === "text" && n.content.includes("底本")
     );
     expect(hasColophon).toBe(true);
+  });
+
+  it("通常行を paragraph としてラップする", () => {
+    // 1 行 = 1 段落: 青空文庫のプレーンテキストは行が段落境界であり、
+    // パーサ側で <p> 相当の構造を保持しないと EPUB が <br/> 区切り巨大ブロック
+    // になり、CJK 縦書きリーダーでメモリ不足を招く（crosspoint-jp #72）。
+    const nodes = parseAozoraText(sampleText);
+    const paragraphs = nodes.filter((n) => n.type === "paragraph");
+    expect(paragraphs.length).toBeGreaterThan(0);
+    // paragraph 内には text/ruby が含まれる
+    const firstWithChildren = paragraphs.find(
+      (p) => p.type === "paragraph" && p.children.length > 0
+    );
+    expect(firstWithChildren).toBeDefined();
   });
 });

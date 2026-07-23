@@ -107,4 +107,28 @@ describe("buildEpub", () => {
     expect(entries).toContain("OEBPS/chapter_001.xhtml");
     expect(entries).not.toContain("OEBPS/chapter_002.xhtml");
   });
+
+  it("paragraph ノードを <p> タグに変換する", async () => {
+    // crosspoint-jp #72: <p> 段落構造がないと CJK 縦書き環境で abort() を招くため、
+    // paragraph ノードは必ず <p> として出力される必要がある。
+    const buffer = await buildEpub({
+      title: "テスト",
+      author: "著者",
+      chapters: [
+        {
+          title: "章",
+          nodes: [
+            { type: "paragraph", children: [{ type: "text", content: "一段落目" }] },
+            { type: "paragraph", children: [{ type: "text", content: "二段落目" }] },
+          ],
+        },
+      ],
+    });
+
+    const zip = new AdmZip(buffer);
+    const ch1 = zip.getEntry("OEBPS/chapter_001.xhtml");
+    const content = ch1!.getData().toString("utf-8");
+    expect(content).toContain("<p>一段落目</p>");
+    expect(content).toContain("<p>二段落目</p>");
+  });
 });

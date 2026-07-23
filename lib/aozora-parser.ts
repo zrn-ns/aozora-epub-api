@@ -132,9 +132,12 @@ function parseLines(text: string): AozoraNode[] {
       continue;
     }
 
-    // 通常行: インラインパース
+    // 通常行: 1行 = 1段落として <p> にラップする。
+    // 青空文庫のプレーンテキストでは改行が段落境界を意味するため、パーサ側で
+    // 段落構造を保持しないと EPUB リーダーで <br/> 区切りの巨大な単一ブロックとなり、
+    // 特に CJK 縦書き環境でメモリ不足クラッシュを誘発する（Issue: crosspoint-jp #72）。
     const inlineNodes = parseInline(line);
-    nodes.push(...inlineNodes);
+    nodes.push({ type: "paragraph", children: inlineNodes });
   }
 
   return nodes;
