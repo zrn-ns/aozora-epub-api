@@ -26,6 +26,7 @@ export type AozoraNode =
   | { type: "heading_end"; level: 1 | 2 | 3 }
   | { type: "indent"; chars: number; children: AozoraNode[] }
   | { type: "emphasis"; style: "sesame" | "circle"; children: AozoraNode[] }
+  | { type: "paragraph"; children: AozoraNode[] }
   | { type: "pagebreak" }
   | { type: "newline" };
 

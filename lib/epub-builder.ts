@@ -25,6 +25,9 @@ function nodesToXhtml(nodes: AozoraNode[]): string {
       case "indent":
         result += `<p style="text-indent: ${node.chars}em">${nodesToXhtml(node.children)}</p>`;
         break;
+      case "paragraph":
+        result += `<p>${nodesToXhtml(node.children)}</p>`;
+        break;
       case "emphasis":
         result += `<em class="${node.style}">${nodesToXhtml(node.children)}</em>`;
         break;

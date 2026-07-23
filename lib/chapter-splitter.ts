@@ -67,6 +67,7 @@ function hasMeaningfulContent(nodes: AozoraNode[]): boolean {
       n.type === "ruby" ||
       n.type === "emphasis" ||
       n.type === "indent" ||
+      n.type === "paragraph" ||
       n.type === "pagebreak"
   );
 }
