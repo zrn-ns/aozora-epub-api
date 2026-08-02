@@ -466,11 +466,16 @@
 
         let html = `<div class="list">`;
         for (const work of data.works) {
+          // 同一タイトルの版違い（文字遣い種別）を区別できるよう併記する
+          const meta = [
+            work.variant ? escapeHtml(work.variant) : "",
+            work.ndc ? "NDC: " + escapeHtml(work.ndc) : "",
+          ].filter(Boolean).join(" &middot; ");
           html += `
             <div class="list-item">
               <div class="list-item-main">
                 <div class="list-item-title">${escapeHtml(work.title)}</div>
-                <div class="list-item-sub">${work.ndc ? "NDC: " + escapeHtml(work.ndc) : ""}</div>
+                <div class="list-item-sub">${meta}</div>
               </div>
               <button class="dl-btn" onclick="downloadEpub(event, ${work.id}, '${escapeHtml(work.title)}')">EPUB</button>
             </div>`;
