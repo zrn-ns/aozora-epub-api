@@ -20,11 +20,17 @@ describe("AozoraIndex", () => {
   describe("getAuthorsByKanaPrefix", () => {
     it("ア行の作家を返す", () => {
       const authors = index.getAuthorsByKanaPrefix("ア");
-      expect(authors).toHaveLength(2); // 芥川, 有島
-      expect(authors[0].name).toBe("芥川龍之介");
-      expect(authors[0].workCount).toBe(3); // 羅生門(新字新仮名/旧字旧仮名), 鼻
-      expect(authors[1].name).toBe("有島武郎");
-      expect(authors[1].workCount).toBe(1);
+      expect(authors).toHaveLength(3); // 秋田(翻訳者), 芥川, 有島
+      // 姓読みの昇順（あきた < あくたがわ < ありしま）
+      expect(authors.map((a) => a.name)).toEqual([
+        "秋田滋",
+        "芥川龍之介",
+        "有島武郎",
+      ]);
+      // 翻訳者も関与作品数がカウントされる
+      expect(authors[0].workCount).toBe(1);
+      expect(authors[1].workCount).toBe(3); // 羅生門(新字新仮名/旧字旧仮名), 鼻
+      expect(authors[2].workCount).toBe(1);
     });
 
     it("タ行の作家を返す", () => {
@@ -53,6 +59,14 @@ describe("AozoraIndex", () => {
       const titles = works.map(w => w.title);
       expect(titles).toContain("羅生門");
       expect(titles).toContain("鼻");
+    });
+
+    it("翻訳作品は翻訳者・著者どちらの一覧にも含まれる", () => {
+      // 「ある自殺者の手記」は CSV 上、翻訳者(秋田滋)の行が著者(モーパッサン)より先に現れる
+      const byTranslator = index.getWorksByAuthorId(1162);
+      const byAuthor = index.getWorksByAuthorId(903);
+      expect(byTranslator.map((w) => w.id)).toContain(43837);
+      expect(byAuthor.map((w) => w.id)).toContain(43837);
     });
 
     it("同一タイトルの分冊は副題で区別できる", () => {
@@ -125,6 +139,13 @@ describe("AozoraIndex", () => {
     it("存在しないIDはnull", () => {
       const work = index.getWorkById(999999);
       expect(work).toBeNull();
+    });
+
+    it("翻訳者の行が先に現れても著者が authorName になる", () => {
+      const work = index.getWorkById(43837);
+      expect(work).not.toBeNull();
+      expect(work!.authorName).toBe("モーパッサンギ・ド");
+      expect(work!.authorId).toBe(903);
     });
   });
 });

@@ -73,7 +73,15 @@ export class AozoraIndex {
   /** 作品ID → 作品 */
   private worksById: Map<number, Work>;
 
-  private constructor(works: Work[], authors: Map<number, Author>) {
+  private constructor(
+    works: Work[],
+    authors: Map<number, Author>,
+    /**
+     * 人物ID → その人物が関与する作品IDの集合。
+     * 著者・翻訳者・校訂者などの役割を問わず全て含む。
+     */
+    workIdsByPersonId: Map<number, Set<number>>
+  ) {
     this.works = works;
     this.authors = authors;
     this.worksByAuthorId = new Map();
@@ -81,16 +89,21 @@ export class AozoraIndex {
 
     for (const work of works) {
       this.worksById.set(work.id, work);
-      if (!this.worksByAuthorId.has(work.authorId)) {
-        this.worksByAuthorId.set(work.authorId, []);
+    }
+
+    for (const [personId, workIds] of workIdsByPersonId) {
+      const list: Work[] = [];
+      for (const workId of workIds) {
+        const work = this.worksById.get(workId);
+        if (work) list.push(work);
       }
-      this.worksByAuthorId.get(work.authorId)!.push(work);
+      this.worksByAuthorId.set(personId, list);
     }
   }
 
   static fromCsv(csvContent: string): AozoraIndex {
     const lines = csvContent.split(/\r?\n/);
-    if (lines.length < 2) return new AozoraIndex([], new Map());
+    if (lines.length < 2) return new AozoraIndex([], new Map(), new Map());
 
     // ヘッダ行からカラムインデックスを動的に構築
     const headerFields = parseCsvLine(lines[0]);
@@ -108,18 +121,23 @@ export class AozoraIndex {
     const C_LAST_NAME = colIdx["姓"] ?? 14;
     const C_FIRST_NAME = colIdx["名"] ?? 15;
     const C_LAST_NAME_KANA = colIdx["姓読み"] ?? 16;
+    const C_ROLE = colIdx["役割フラグ"] ?? 23;
     const C_TEXT_URL = colIdx["テキストファイルURL"] ?? 42;
 
     const dataLines = lines.slice(1).filter((l) => l.trim() !== "");
 
-    const worksMap = new Map<number, Work>();
+    // CSVは「1作品1行」ではなく「1作品の関係者ごとに1行」なので、
+    // 作品情報の元にする行を作品IDごとに1つ選ぶ。翻訳者の行が著者の行より
+    // 先に現れることもあるため、役割フラグが「著者」の行を優先する。
+    const workFields = new Map<number, string[]>();
+    const workRoles = new Map<number, string>();
+    // 人物ID → その人物が関与する作品IDの集合（役割は問わない）
+    const workIdsByPersonId = new Map<number, Set<number>>();
     // authorId → { 姓, 名, 姓読み } の一時マップ
     const authorRaw = new Map<
       number,
       { lastName: string; firstName: string; lastNameKana: string }
     >();
-    // authorId → 作品数カウント
-    const authorWorkCount = new Map<number, number>();
 
     for (const line of dataLines) {
       const fields = parseCsvLine(line);
@@ -136,28 +154,22 @@ export class AozoraIndex {
       const authorId = parseInt(fields[C_PERSON_ID], 10);
       if (isNaN(authorId)) continue;
 
-      // NDC: "NDC 913" → "913"
-      const ndcRaw = fields[C_NDC].trim();
-      const ndcMatch = ndcRaw.match(/NDC\s+(\S+)/);
-      const ndc = ndcMatch ? ndcMatch[1] : ndcRaw;
-
-      const work: Work = {
-        id: workId,
-        title: fields[C_TITLE].trim(),
-        subtitle: fields[C_SUBTITLE].trim(),
-        titleKana: fields[C_TITLE_KANA].trim(),
-        authorId,
-        authorName: `${fields[C_LAST_NAME].trim()}${fields[C_FIRST_NAME].trim()}`,
-        ndc,
-        textUrl,
-        publishedDate: fields[C_PUBLISHED_DATE].trim(),
-        variant: fields[C_VARIANT].trim(),
-      };
-
-      // 同じ作品IDの重複行は最初のもので確定（通常は1作品=1行）
-      if (!worksMap.has(workId)) {
-        worksMap.set(workId, work);
+      // 作品情報の元にする行を決める（「著者」の行が最優先、無ければ先着）
+      const role = fields[C_ROLE].trim();
+      const currentRole = workRoles.get(workId);
+      if (currentRole === undefined || (currentRole !== "著者" && role === "著者")) {
+        workFields.set(workId, fields);
+        workRoles.set(workId, role);
       }
+
+      // 役割を問わず全ての関係者を作品に紐付ける
+      // （こうしないと翻訳者や共著者の作品一覧が空になる）
+      let workIds = workIdsByPersonId.get(authorId);
+      if (!workIds) {
+        workIds = new Set();
+        workIdsByPersonId.set(authorId, workIds);
+      }
+      workIds.add(workId);
 
       // 作者情報を収集（同一IDの先着を使用）
       if (!authorRaw.has(authorId)) {
@@ -169,27 +181,40 @@ export class AozoraIndex {
       }
     }
 
-    // worksMap からリストを作成し、作者ごとの作品数を集計
-    const works: Work[] = Array.from(worksMap.values());
-    for (const work of works) {
-      authorWorkCount.set(
-        work.authorId,
-        (authorWorkCount.get(work.authorId) ?? 0) + 1
-      );
+    // 選ばれた行から Work を構築する
+    const works: Work[] = [];
+    for (const [workId, fields] of workFields) {
+      // NDC: "NDC 913" → "913"
+      const ndcRaw = fields[C_NDC].trim();
+      const ndcMatch = ndcRaw.match(/NDC\s+(\S+)/);
+      const ndc = ndcMatch ? ndcMatch[1] : ndcRaw;
+
+      works.push({
+        id: workId,
+        title: fields[C_TITLE].trim(),
+        subtitle: fields[C_SUBTITLE].trim(),
+        titleKana: fields[C_TITLE_KANA].trim(),
+        authorId: parseInt(fields[C_PERSON_ID], 10),
+        authorName: `${fields[C_LAST_NAME].trim()}${fields[C_FIRST_NAME].trim()}`,
+        ndc,
+        textUrl: fields[C_TEXT_URL].trim(),
+        publishedDate: fields[C_PUBLISHED_DATE].trim(),
+        variant: fields[C_VARIANT].trim(),
+      });
     }
 
-    // Author マップを構築
+    // Author マップを構築（作品数は関与作品の数で数える）
     const authors = new Map<number, Author>();
     for (const [id, raw] of authorRaw) {
       authors.set(id, {
         id,
         name: `${raw.lastName}${raw.firstName}`,
         kana: raw.lastNameKana,
-        workCount: authorWorkCount.get(id) ?? 0,
+        workCount: workIdsByPersonId.get(id)?.size ?? 0,
       });
     }
 
-    return new AozoraIndex(works, authors);
+    return new AozoraIndex(works, authors, workIdsByPersonId);
   }
 
   /**
