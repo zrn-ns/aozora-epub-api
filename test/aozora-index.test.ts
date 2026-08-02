@@ -8,23 +8,51 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 describe("AozoraIndex", () => {
   let index: AozoraIndex;
+  let csvContent: string;
 
   beforeAll(() => {
-    const csv = readFileSync(
+    csvContent = readFileSync(
       resolve(__dirname, "../test-fixtures/sample-index.csv"),
       "utf-8"
     );
-    index = AozoraIndex.fromCsv(csv);
+    index = AozoraIndex.fromCsv(csvContent);
+  });
+
+  describe("ヘッダ名が未知の場合の列位置フォールバック", () => {
+    it("列位置のフォールバックだけでも著者の行を選べる", () => {
+      // ヘッダ名を全て未知の名前に置き換え、colIdx を引けない状態にする
+      const lines = csvContent.split("\n");
+      const brokenHeader = lines[0]
+        .split(",")
+        .map((_, i) => `col${i}`)
+        .join(",");
+      const fallbackIndex = AozoraIndex.fromCsv(
+        [brokenHeader, ...lines.slice(1)].join("\n")
+      );
+
+      // 翻訳者の行が先に現れる作品でも著者が採用される
+      // （役割フラグの列位置を誤ると先着の翻訳者になってしまう）
+      const work = fallbackIndex.getWorkById(43837);
+      expect(work).not.toBeNull();
+      expect(work!.authorName).toBe("モーパッサンギ・ド");
+      expect(work!.title).toBe("ある自殺者の手記");
+    });
   });
 
   describe("getAuthorsByKanaPrefix", () => {
     it("ア行の作家を返す", () => {
       const authors = index.getAuthorsByKanaPrefix("ア");
-      expect(authors).toHaveLength(2); // 芥川, 有島
-      expect(authors[0].name).toBe("芥川龍之介");
-      expect(authors[0].workCount).toBe(2);
-      expect(authors[1].name).toBe("有島武郎");
-      expect(authors[1].workCount).toBe(1);
+      expect(authors).toHaveLength(3); // 秋田(翻訳者), 芥川, 有島
+      // 姓読みの昇順（あきた < あくたがわ < ありしま）
+      expect(authors.map((a) => a.name)).toEqual([
+        "秋田滋",
+        "芥川龍之介",
+        "有島武郎",
+      ]);
+      // 翻訳者も関与作品数がカウントされる
+      expect(authors[0].workCount).toBe(1);
+      expect(authors[1].workCount).toBe(3); // 羅生門(新字新仮名/旧字旧仮名), 鼻
+      expect(authors[2].workCount).toBe(1);
     });
 
     it("タ行の作家を返す", () => {
@@ -35,8 +63,9 @@ describe("AozoraIndex", () => {
 
     it("ナ行の作家を返す", () => {
       const authors = index.getAuthorsByKanaPrefix("ナ");
-      expect(authors).toHaveLength(1); // 夏目
-      expect(authors[0].name).toBe("夏目漱石");
+      expect(authors).toHaveLength(2); // 夏目, 野村
+      expect(authors.map((a) => a.name)).toContain("夏目漱石");
+      expect(authors.map((a) => a.name)).toContain("野村胡堂");
     });
 
     it("該当なしの行は空配列", () => {
@@ -46,12 +75,46 @@ describe("AozoraIndex", () => {
   });
 
   describe("getWorksByAuthorId", () => {
-    it("芥川の作品2つを取得", () => {
+    it("芥川の作品を取得", () => {
       const works = index.getWorksByAuthorId(879);
-      expect(works).toHaveLength(2);
+      expect(works).toHaveLength(3);
       const titles = works.map(w => w.title);
       expect(titles).toContain("羅生門");
       expect(titles).toContain("鼻");
+    });
+
+    it("翻訳作品は翻訳者・著者どちらの一覧にも含まれる", () => {
+      // 「ある自殺者の手記」は CSV 上、翻訳者(秋田滋)の行が著者(モーパッサン)より先に現れる
+      const byTranslator = index.getWorksByAuthorId(1162);
+      const byAuthor = index.getWorksByAuthorId(903);
+      expect(byTranslator.map((w) => w.id)).toContain(43837);
+      expect(byAuthor.map((w) => w.id)).toContain(43837);
+    });
+
+    it("同一タイトルの分冊は副題で区別できる", () => {
+      const works = index
+        .getWorksByAuthorId(1670)
+        .filter((w) => w.title === "銭形平次捕物控");
+      expect(works).toHaveLength(2);
+      expect(new Set(works.map((w) => w.subtitle))).toEqual(
+        new Set(["001 金色の処女", "002 振袖源太"])
+      );
+    });
+
+    it("副題を持たない作品の subtitle は空文字", () => {
+      const work = index.getWorkById(879);
+      expect(work!.subtitle).toBe("");
+    });
+
+    it("同一タイトルの版違いは別作品として保持し、文字遣い種別で区別できる", () => {
+      const rashomon = index
+        .getWorksByAuthorId(879)
+        .filter((w) => w.title === "羅生門");
+      expect(rashomon).toHaveLength(2);
+      expect(new Set(rashomon.map((w) => w.id))).toEqual(new Set([879, 128]));
+      expect(new Set(rashomon.map((w) => w.variant))).toEqual(
+        new Set(["新字新仮名", "旧字旧仮名"])
+      );
     });
   });
 
@@ -71,7 +134,7 @@ describe("AozoraIndex", () => {
   describe("getWorksByNdc", () => {
     it("NDC 913の作品を全て取得", () => {
       const works = index.getWorksByNdc("913");
-      expect(works).toHaveLength(5);
+      expect(works).toHaveLength(8);
     });
   });
 
@@ -79,8 +142,11 @@ describe("AozoraIndex", () => {
     it("公開日新しい順でN件取得", () => {
       const works = index.getNewestWorks(2);
       expect(works).toHaveLength(2);
-      // 2001-03-15 が最新
-      expect(works[0].title).toBe("或る女");
+      // 2014-02-02 が最新
+      expect(works[0].title).toBe("銭形平次捕物控");
+      expect(works[0].subtitle).toBe("002 振袖源太");
+      // 次に 2014-01-02
+      expect(works[1].subtitle).toBe("001 金色の処女");
     });
   });
 
@@ -95,6 +161,13 @@ describe("AozoraIndex", () => {
     it("存在しないIDはnull", () => {
       const work = index.getWorkById(999999);
       expect(work).toBeNull();
+    });
+
+    it("翻訳者の行が先に現れても著者が authorName になる", () => {
+      const work = index.getWorkById(43837);
+      expect(work).not.toBeNull();
+      expect(work!.authorName).toBe("モーパッサンギ・ド");
+      expect(work!.authorId).toBe(903);
     });
   });
 });

@@ -10,12 +10,16 @@ export interface Author {
 export interface Work {
   id: number;
   title: string;
+  /** 副題（例: "001 金色の処女"）。無い場合は空文字 */
+  subtitle: string;
   titleKana: string;
   authorId: number;
   authorName: string;
   ndc: string;
   textUrl: string;
   publishedDate: string;
+  /** 文字遣い種別（例: "新字新仮名", "旧字旧仮名"） */
+  variant: string;
 }
 
 /** 青空文庫注記パーサーの出力ノード */
@@ -57,7 +61,15 @@ export interface WorksResponse {
   works: Array<{
     id: number;
     title: string;
+    /** 副題。同一タイトルの分冊・連作を区別するために返す（無い場合は空文字） */
+    subtitle: string;
     kana: string;
     ndc: string;
+    author: string;
+    /** 文字遣い種別（例: "新字新仮名"）。同一タイトルの版違いを区別するために返す */
+    variant: string;
   }>;
+  total: number;
+  offset: number;
+  limit: number;
 }

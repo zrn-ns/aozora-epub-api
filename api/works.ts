@@ -9,9 +9,11 @@ function toWorkItem(w: Work) {
   return {
     id: w.id,
     title: w.title,
+    subtitle: w.subtitle,
     kana: w.titleKana,
     ndc: w.ndc,
     author: w.authorName,
+    variant: w.variant,
   };
 }
 
@@ -81,7 +83,7 @@ export default async function handler(
     const total = works.length;
     const paged = works.slice(safeOffset, safeOffset + safeLimit2);
 
-    const body = {
+    const body: WorksResponse = {
       works: paged.map(toWorkItem),
       total,
       offset: safeOffset,

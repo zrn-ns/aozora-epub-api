@@ -72,6 +72,22 @@ describe("GET /api/convert", () => {
     expect(epubBuffer.length).toBeGreaterThan(0);
   });
 
+  it("副題を持つ作品はファイル名に副題を含める", async () => {
+    const { req, res } = mockReqRes({ work_id: "54695" });
+    await handler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    const disposition = String(
+      vi.mocked(res.setHeader).mock.calls.find(
+        (c) => c[0] === "Content-Disposition"
+      )?.[1]
+    );
+    // 「銭形平次捕物控　001 金色の処女.epub」が URL エンコードされて入る
+    expect(decodeURIComponent(disposition)).toContain(
+      "銭形平次捕物控　001 金色の処女.epub"
+    );
+  });
+
   it("work_id が存在しない場合は 400 を返す", async () => {
     const { req, res } = mockReqRes({});
     await handler(req, res);

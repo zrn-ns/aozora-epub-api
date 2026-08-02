@@ -29,7 +29,14 @@ function mockReqRes(query: Record<string, string>) {
   return { req, res };
 }
 
-type WorkItem = { id: number; title: string; kana: string; ndc: string };
+type WorkItem = {
+  id: number;
+  title: string;
+  subtitle: string;
+  kana: string;
+  ndc: string;
+  variant: string;
+};
 
 describe("GET /api/works", () => {
   beforeAll(() => {
@@ -52,11 +59,29 @@ describe("GET /api/works", () => {
     const titles = body.works.map((w) => w.title);
     expect(titles).toContain("羅生門");
     expect(titles).toContain("鼻");
-    // レスポンス形式の確認
-    expect(body.works[0]).toHaveProperty("id");
-    expect(body.works[0]).toHaveProperty("title");
-    expect(body.works[0]).toHaveProperty("kana");
-    expect(body.works[0]).toHaveProperty("ndc");
+    // レスポンス形式の確認（並び順に依存しないよう作品IDで引く）
+    const rashomon = body.works.find((w) => w.id === 879);
+    expect(rashomon).toBeDefined();
+    expect(rashomon).toHaveProperty("title");
+    expect(rashomon).toHaveProperty("kana");
+    expect(rashomon).toHaveProperty("ndc");
+    // 同一タイトルの版違いを区別するため文字遣い種別を返す
+    expect(rashomon!.variant).toBe("新字新仮名");
+    // 副題を持たない作品は空文字
+    expect(rashomon!.subtitle).toBe("");
+  });
+
+  it("副題を持つ作品は subtitle を返す", async () => {
+    const { req, res } = mockReqRes({ author_id: "1670" });
+    await handler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    const body = vi.mocked(res.json).mock.calls[0][0] as { works: WorkItem[] };
+    expect(body.works).toHaveLength(2);
+    body.works.forEach((w) => expect(w.title).toBe("銭形平次捕物控"));
+    expect(new Set(body.works.map((w) => w.subtitle))).toEqual(
+      new Set(["001 金色の処女", "002 振袖源太"])
+    );
   });
 
   it("kana_prefix=ハ で作品一覧を返す", async () => {

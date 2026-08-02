@@ -52,7 +52,7 @@ describe("GET /api/authors", () => {
     // 芥川龍之介が含まれること
     const akutagawa = body.authors.find((a) => a.name === "芥川龍之介");
     expect(akutagawa).toBeDefined();
-    expect(akutagawa?.work_count).toBe(2);
+    expect(akutagawa?.work_count).toBe(3); // 羅生門(新字新仮名/旧字旧仮名), 鼻
     // レスポンス形式の確認（id, name, kana, work_count）
     expect(akutagawa).toHaveProperty("id");
     expect(akutagawa).toHaveProperty("kana");
