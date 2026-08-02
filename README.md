@@ -59,13 +59,15 @@ curl "https://aozora-epub-api.vercel.app/api/works?author_id=879&limit=3"
 ```json
 {
   "works": [
-    { "id": 45, "title": "羅生門", "kana": "ラショウモン", "ndc": "913", "author": "芥川 龍之介" }
+    { "id": 45, "title": "羅生門", "kana": "ラショウモン", "ndc": "913", "author": "芥川 龍之介", "variant": "新字新仮名" }
   ],
   "total": 371,
   "offset": 0,
   "limit": 3
 }
 ```
+
+`variant` は文字遣い種別（`新字新仮名` / `新字旧仮名` / `旧字旧仮名`）です。青空文庫には同じ作者・同じタイトルの作品が、文字遣いや底本の違いで別の作品IDとして登録されているケースがあるため（例: 芥川龍之介「アグニの神」= 000015 / 043014）、この値で区別できます。
 
 ### `GET /api/convert`
 

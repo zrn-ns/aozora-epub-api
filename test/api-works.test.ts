@@ -29,7 +29,13 @@ function mockReqRes(query: Record<string, string>) {
   return { req, res };
 }
 
-type WorkItem = { id: number; title: string; kana: string; ndc: string };
+type WorkItem = {
+  id: number;
+  title: string;
+  kana: string;
+  ndc: string;
+  variant: string;
+};
 
 describe("GET /api/works", () => {
   beforeAll(() => {
@@ -57,6 +63,8 @@ describe("GET /api/works", () => {
     expect(body.works[0]).toHaveProperty("title");
     expect(body.works[0]).toHaveProperty("kana");
     expect(body.works[0]).toHaveProperty("ndc");
+    // 同一タイトルの版違いを区別するため文字遣い種別を返す
+    expect(body.works[0].variant).toBe("新字新仮名");
   });
 
   it("kana_prefix=ハ で作品一覧を返す", async () => {

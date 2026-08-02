@@ -22,7 +22,7 @@ describe("AozoraIndex", () => {
       const authors = index.getAuthorsByKanaPrefix("ア");
       expect(authors).toHaveLength(2); // 芥川, 有島
       expect(authors[0].name).toBe("芥川龍之介");
-      expect(authors[0].workCount).toBe(2);
+      expect(authors[0].workCount).toBe(3); // 羅生門(新字新仮名/旧字旧仮名), 鼻
       expect(authors[1].name).toBe("有島武郎");
       expect(authors[1].workCount).toBe(1);
     });
@@ -46,12 +46,23 @@ describe("AozoraIndex", () => {
   });
 
   describe("getWorksByAuthorId", () => {
-    it("芥川の作品2つを取得", () => {
+    it("芥川の作品を取得", () => {
       const works = index.getWorksByAuthorId(879);
-      expect(works).toHaveLength(2);
+      expect(works).toHaveLength(3);
       const titles = works.map(w => w.title);
       expect(titles).toContain("羅生門");
       expect(titles).toContain("鼻");
+    });
+
+    it("同一タイトルの版違いは別作品として保持し、文字遣い種別で区別できる", () => {
+      const rashomon = index
+        .getWorksByAuthorId(879)
+        .filter((w) => w.title === "羅生門");
+      expect(rashomon).toHaveLength(2);
+      expect(new Set(rashomon.map((w) => w.id))).toEqual(new Set([879, 128]));
+      expect(new Set(rashomon.map((w) => w.variant))).toEqual(
+        new Set(["新字新仮名", "旧字旧仮名"])
+      );
     });
   });
 
@@ -71,7 +82,7 @@ describe("AozoraIndex", () => {
   describe("getWorksByNdc", () => {
     it("NDC 913の作品を全て取得", () => {
       const works = index.getWorksByNdc("913");
-      expect(works).toHaveLength(5);
+      expect(works).toHaveLength(6);
     });
   });
 

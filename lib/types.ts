@@ -16,6 +16,8 @@ export interface Work {
   ndc: string;
   textUrl: string;
   publishedDate: string;
+  /** 文字遣い種別（例: "新字新仮名", "旧字旧仮名"） */
+  variant: string;
 }
 
 /** 青空文庫注記パーサーの出力ノード */
@@ -59,5 +61,11 @@ export interface WorksResponse {
     title: string;
     kana: string;
     ndc: string;
+    author: string;
+    /** 文字遣い種別（例: "新字新仮名"）。同一タイトルの版違いを区別するために返す */
+    variant: string;
   }>;
+  total: number;
+  offset: number;
+  limit: number;
 }

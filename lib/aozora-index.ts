@@ -100,6 +100,7 @@ export class AozoraIndex {
     const C_TITLE = colIdx["作品名"] ?? 1;
     const C_TITLE_KANA = colIdx["作品名読み"] ?? 2;
     const C_NDC = colIdx["分類番号"] ?? 8;
+    const C_VARIANT = colIdx["文字遣い種別"] ?? 9;
     const C_WORK_COPYRIGHT = colIdx["作品著作権フラグ"] ?? 10;
     const C_PUBLISHED_DATE = colIdx["公開日"] ?? 11;
     const C_PERSON_ID = colIdx["人物ID"] ?? 13;
@@ -148,6 +149,7 @@ export class AozoraIndex {
         ndc,
         textUrl,
         publishedDate: fields[C_PUBLISHED_DATE].trim(),
+        variant: fields[C_VARIANT].trim(),
       };
 
       // 同じ作品IDの重複行は最初のもので確定（通常は1作品=1行）
