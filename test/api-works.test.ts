@@ -59,15 +59,16 @@ describe("GET /api/works", () => {
     const titles = body.works.map((w) => w.title);
     expect(titles).toContain("羅生門");
     expect(titles).toContain("鼻");
-    // レスポンス形式の確認
-    expect(body.works[0]).toHaveProperty("id");
-    expect(body.works[0]).toHaveProperty("title");
-    expect(body.works[0]).toHaveProperty("kana");
-    expect(body.works[0]).toHaveProperty("ndc");
+    // レスポンス形式の確認（並び順に依存しないよう作品IDで引く）
+    const rashomon = body.works.find((w) => w.id === 879);
+    expect(rashomon).toBeDefined();
+    expect(rashomon).toHaveProperty("title");
+    expect(rashomon).toHaveProperty("kana");
+    expect(rashomon).toHaveProperty("ndc");
     // 同一タイトルの版違いを区別するため文字遣い種別を返す
-    expect(body.works[0].variant).toBe("新字新仮名");
+    expect(rashomon!.variant).toBe("新字新仮名");
     // 副題を持たない作品は空文字
-    expect(body.works[0].subtitle).toBe("");
+    expect(rashomon!.subtitle).toBe("");
   });
 
   it("副題を持つ作品は subtitle を返す", async () => {
