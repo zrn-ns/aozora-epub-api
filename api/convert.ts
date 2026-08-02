@@ -78,14 +78,21 @@ export default async function handler(
   try {
     const nodes = parseAozoraText(rawText);
     const chapters = splitChapters(nodes);
+
+    // 「銭形平次捕物控」のように同一タイトルで副題だけが異なる作品が多数あるため、
+    // EPUBのタイトルとファイル名には副題を含めて区別できるようにする
+    const fullTitle = work.subtitle
+      ? `${work.title}　${work.subtitle}`
+      : work.title;
+
     const epubBuffer = await buildEpub({
-      title: work.title,
+      title: fullTitle,
       author: work.authorName,
       chapters,
     });
 
     // ファイル名をASCIIセーフにエンコード
-    const safeTitle = encodeURIComponent(work.title);
+    const safeTitle = encodeURIComponent(fullTitle);
     res.setHeader("Content-Type", "application/epub+zip");
     res.setHeader("Content-Length", String(epubBuffer.length));
     res.setHeader(

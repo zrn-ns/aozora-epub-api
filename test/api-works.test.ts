@@ -32,6 +32,7 @@ function mockReqRes(query: Record<string, string>) {
 type WorkItem = {
   id: number;
   title: string;
+  subtitle: string;
   kana: string;
   ndc: string;
   variant: string;
@@ -65,6 +66,21 @@ describe("GET /api/works", () => {
     expect(body.works[0]).toHaveProperty("ndc");
     // 同一タイトルの版違いを区別するため文字遣い種別を返す
     expect(body.works[0].variant).toBe("新字新仮名");
+    // 副題を持たない作品は空文字
+    expect(body.works[0].subtitle).toBe("");
+  });
+
+  it("副題を持つ作品は subtitle を返す", async () => {
+    const { req, res } = mockReqRes({ author_id: "1670" });
+    await handler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    const body = vi.mocked(res.json).mock.calls[0][0] as { works: WorkItem[] };
+    expect(body.works).toHaveLength(2);
+    body.works.forEach((w) => expect(w.title).toBe("銭形平次捕物控"));
+    expect(new Set(body.works.map((w) => w.subtitle))).toEqual(
+      new Set(["001 金色の処女", "002 振袖源太"])
+    );
   });
 
   it("kana_prefix=ハ で作品一覧を返す", async () => {

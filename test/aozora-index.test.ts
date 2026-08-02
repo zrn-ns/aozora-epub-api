@@ -35,8 +35,9 @@ describe("AozoraIndex", () => {
 
     it("ナ行の作家を返す", () => {
       const authors = index.getAuthorsByKanaPrefix("ナ");
-      expect(authors).toHaveLength(1); // 夏目
-      expect(authors[0].name).toBe("夏目漱石");
+      expect(authors).toHaveLength(2); // 夏目, 野村
+      expect(authors.map((a) => a.name)).toContain("夏目漱石");
+      expect(authors.map((a) => a.name)).toContain("野村胡堂");
     });
 
     it("該当なしの行は空配列", () => {
@@ -52,6 +53,21 @@ describe("AozoraIndex", () => {
       const titles = works.map(w => w.title);
       expect(titles).toContain("羅生門");
       expect(titles).toContain("鼻");
+    });
+
+    it("同一タイトルの分冊は副題で区別できる", () => {
+      const works = index
+        .getWorksByAuthorId(1670)
+        .filter((w) => w.title === "銭形平次捕物控");
+      expect(works).toHaveLength(2);
+      expect(new Set(works.map((w) => w.subtitle))).toEqual(
+        new Set(["001 金色の処女", "002 振袖源太"])
+      );
+    });
+
+    it("副題を持たない作品の subtitle は空文字", () => {
+      const work = index.getWorkById(879);
+      expect(work!.subtitle).toBe("");
     });
 
     it("同一タイトルの版違いは別作品として保持し、文字遣い種別で区別できる", () => {
@@ -82,7 +98,7 @@ describe("AozoraIndex", () => {
   describe("getWorksByNdc", () => {
     it("NDC 913の作品を全て取得", () => {
       const works = index.getWorksByNdc("913");
-      expect(works).toHaveLength(6);
+      expect(works).toHaveLength(8);
     });
   });
 
@@ -90,8 +106,11 @@ describe("AozoraIndex", () => {
     it("公開日新しい順でN件取得", () => {
       const works = index.getNewestWorks(2);
       expect(works).toHaveLength(2);
-      // 2001-03-15 が最新
-      expect(works[0].title).toBe("或る女");
+      // 2014-02-02 が最新
+      expect(works[0].title).toBe("銭形平次捕物控");
+      expect(works[0].subtitle).toBe("002 振袖源太");
+      // 次に 2014-01-02
+      expect(works[1].subtitle).toBe("001 金色の処女");
     });
   });
 

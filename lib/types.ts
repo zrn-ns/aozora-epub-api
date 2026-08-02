@@ -10,6 +10,8 @@ export interface Author {
 export interface Work {
   id: number;
   title: string;
+  /** 副題（例: "001 金色の処女"）。無い場合は空文字 */
+  subtitle: string;
   titleKana: string;
   authorId: number;
   authorName: string;
@@ -59,6 +61,8 @@ export interface WorksResponse {
   works: Array<{
     id: number;
     title: string;
+    /** 副題。同一タイトルの分冊・連作を区別するために返す（無い場合は空文字） */
+    subtitle: string;
     kana: string;
     ndc: string;
     author: string;

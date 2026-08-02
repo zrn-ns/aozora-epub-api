@@ -9,6 +9,7 @@ function toWorkItem(w: Work) {
   return {
     id: w.id,
     title: w.title,
+    subtitle: w.subtitle,
     kana: w.titleKana,
     ndc: w.ndc,
     author: w.authorName,

@@ -99,6 +99,7 @@ export class AozoraIndex {
     const C_WORK_ID = colIdx["作品ID"] ?? 0;
     const C_TITLE = colIdx["作品名"] ?? 1;
     const C_TITLE_KANA = colIdx["作品名読み"] ?? 2;
+    const C_SUBTITLE = colIdx["副題"] ?? 4;
     const C_NDC = colIdx["分類番号"] ?? 8;
     const C_VARIANT = colIdx["文字遣い種別"] ?? 9;
     const C_WORK_COPYRIGHT = colIdx["作品著作権フラグ"] ?? 10;
@@ -143,6 +144,7 @@ export class AozoraIndex {
       const work: Work = {
         id: workId,
         title: fields[C_TITLE].trim(),
+        subtitle: fields[C_SUBTITLE].trim(),
         titleKana: fields[C_TITLE_KANA].trim(),
         authorId,
         authorName: `${fields[C_LAST_NAME].trim()}${fields[C_FIRST_NAME].trim()}`,

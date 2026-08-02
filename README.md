@@ -59,7 +59,7 @@ curl "https://aozora-epub-api.vercel.app/api/works?author_id=879&limit=3"
 ```json
 {
   "works": [
-    { "id": 45, "title": "羅生門", "kana": "ラショウモン", "ndc": "913", "author": "芥川 龍之介", "variant": "新字新仮名" }
+    { "id": 45, "title": "羅生門", "subtitle": "", "kana": "ラショウモン", "ndc": "913", "author": "芥川 龍之介", "variant": "新字新仮名" }
   ],
   "total": 371,
   "offset": 0,
@@ -67,7 +67,12 @@ curl "https://aozora-epub-api.vercel.app/api/works?author_id=879&limit=3"
 }
 ```
 
-`variant` は文字遣い種別（`新字新仮名` / `新字旧仮名` / `旧字旧仮名`）です。青空文庫には同じ作者・同じタイトルの作品が、文字遣いや底本の違いで別の作品IDとして登録されているケースがあるため（例: 芥川龍之介「アグニの神」= 000015 / 043014）、この値で区別できます。
+青空文庫には同じ作者・同じタイトルの作品が複数登録されているため、区別用に次の2つのフィールドを返します。
+
+| フィールド | 説明 |
+|---|---|
+| `subtitle` | 副題。分冊や連作を区別する（例: 野村胡堂「銭形平次捕物控」は副題違いで438件ある）。無い場合は空文字 |
+| `variant` | 文字遣い種別（`新字新仮名` / `新字旧仮名` / `旧字旧仮名`）。文字遣いや底本の違いで別IDになっているものを区別する（例: 芥川龍之介「アグニの神」= 000015 / 043014） |
 
 ### `GET /api/convert`
 
@@ -82,6 +87,8 @@ curl -OJ "https://aozora-epub-api.vercel.app/api/convert?work_id=45"
 ```
 
 レスポンス: `application/epub+zip` バイナリ
+
+副題を持つ作品は、EPUBのタイトルとファイル名が `作品名　副題`（例: `銭形平次捕物控　001 金色の処女.epub`）になります。
 
 ## EPUB変換の対応機能
 
