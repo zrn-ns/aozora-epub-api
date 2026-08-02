@@ -148,6 +148,12 @@
       text-overflow: ellipsis;
     }
 
+    .list-item-subtitle {
+      color: #999;
+      font-size: 13px;
+      margin-left: 6px;
+    }
+
     .list-item-sub {
       font-size: 12px;
       color: #aaa;
@@ -471,13 +477,20 @@
             work.variant ? escapeHtml(work.variant) : "",
             work.ndc ? "NDC: " + escapeHtml(work.ndc) : "",
           ].filter(Boolean).join(" &middot; ");
+          // 「銭形平次捕物控」のように副題だけが異なる作品が多数あるため副題も表示する
+          const subtitle = work.subtitle
+            ? `<span class="list-item-subtitle">${escapeHtml(work.subtitle)}</span>`
+            : "";
+          const fileTitle = work.subtitle
+            ? `${work.title}　${work.subtitle}`
+            : work.title;
           html += `
             <div class="list-item">
               <div class="list-item-main">
-                <div class="list-item-title">${escapeHtml(work.title)}</div>
+                <div class="list-item-title">${escapeHtml(work.title)}${subtitle}</div>
                 <div class="list-item-sub">${meta}</div>
               </div>
-              <button class="dl-btn" onclick="downloadEpub(event, ${work.id}, '${escapeHtml(work.title)}')">EPUB</button>
+              <button class="dl-btn" onclick="downloadEpub(event, ${work.id}, '${escapeHtml(fileTitle)}')">EPUB</button>
             </div>`;
         }
         html += `</div>`;
