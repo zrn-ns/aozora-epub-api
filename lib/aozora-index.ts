@@ -121,7 +121,7 @@ export class AozoraIndex {
     const C_LAST_NAME = colIdx["姓"] ?? 14;
     const C_FIRST_NAME = colIdx["名"] ?? 15;
     const C_LAST_NAME_KANA = colIdx["姓読み"] ?? 16;
-    const C_ROLE = colIdx["役割フラグ"] ?? 23;
+    const C_ROLE = colIdx["役割フラグ"] ?? 22;
     const C_TEXT_URL = colIdx["テキストファイルURL"] ?? 42;
 
     const dataLines = lines.slice(1).filter((l) => l.trim() !== "");
@@ -155,6 +155,8 @@ export class AozoraIndex {
       if (isNaN(authorId)) continue;
 
       // 作品情報の元にする行を決める（「著者」の行が最優先、無ければ先着）
+      // 共著作品は先着の著者1名を代表として扱う（作品自体は下の紐付けで
+      // 全共著者の一覧に出る）
       const role = fields[C_ROLE].trim();
       const currentRole = workRoles.get(workId);
       if (currentRole === undefined || (currentRole !== "著者" && role === "著者")) {

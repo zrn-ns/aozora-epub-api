@@ -8,13 +8,35 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 describe("AozoraIndex", () => {
   let index: AozoraIndex;
+  let csvContent: string;
 
   beforeAll(() => {
-    const csv = readFileSync(
+    csvContent = readFileSync(
       resolve(__dirname, "../test-fixtures/sample-index.csv"),
       "utf-8"
     );
-    index = AozoraIndex.fromCsv(csv);
+    index = AozoraIndex.fromCsv(csvContent);
+  });
+
+  describe("ヘッダ名が未知の場合の列位置フォールバック", () => {
+    it("列位置のフォールバックだけでも著者の行を選べる", () => {
+      // ヘッダ名を全て未知の名前に置き換え、colIdx を引けない状態にする
+      const lines = csvContent.split("\n");
+      const brokenHeader = lines[0]
+        .split(",")
+        .map((_, i) => `col${i}`)
+        .join(",");
+      const fallbackIndex = AozoraIndex.fromCsv(
+        [brokenHeader, ...lines.slice(1)].join("\n")
+      );
+
+      // 翻訳者の行が先に現れる作品でも著者が採用される
+      // （役割フラグの列位置を誤ると先着の翻訳者になってしまう）
+      const work = fallbackIndex.getWorkById(43837);
+      expect(work).not.toBeNull();
+      expect(work!.authorName).toBe("モーパッサンギ・ド");
+      expect(work!.title).toBe("ある自殺者の手記");
+    });
   });
 
   describe("getAuthorsByKanaPrefix", () => {
